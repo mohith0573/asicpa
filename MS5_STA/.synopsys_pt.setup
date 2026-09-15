@@ -1,0 +1,26 @@
+#=====================================================================
+#   Adapted from the ECE Dept. UW-Madison .synopsys_pt.setup template
+#   (same file your ASAP7 flow used) — already has a built-in
+#   tcbn65gplustc branch. Switched to it, and pointed search_path at
+#   where you actually extracted the library on this server.
+#=====================================================================
+
+set TECH_LIB tcbn65gplustc
+switch $TECH_LIB {
+	tcbn65gplustc {
+                set IO_LIB ${TECH_LIB}
+                set TECH_FILE ${TECH_LIB}.db
+                set IO_FILE ${IO_LIB}.db
+                set MEMORY_FILE ${TECH_LIB}.db }
+}
+
+# User Identity
+set designer [get_unix_variable USER]
+set company  "ECE Dept., UW-Madison"
+
+# Search Path — EDIT if you extracted the library somewhere else
+set search_path "."
+lappend search_path "/home/mthatikonda/tsmc65_work/FE_nldm/TSMCHOME/digital/Front_End/timing_power_noise/NLDM/tcbn65gplus_200a"
+
+set target_library "$TECH_FILE"
+set link_library      "$target_library *"

@@ -1,0 +1,46 @@
+#=====================================================================
+#   Adapted from the ECE Dept. UW-Madison .synopsys_dc.setup template
+#   (same file your ASAP7 flow used) — that template ALREADY has a
+#   built-in tcbn65gplustc branch, since the department flow was written
+#   to support TSMC 40/45/65nm as well as ASAP7. We're just switching
+#   which branch is active and pointing search_path at where you
+#   actually extracted the library on this server.
+#=====================================================================
+
+# Target Technology Library — switched from asap7sc7p5t_28 to tcbn65gplustc
+set TECH_LIB tcbn65gplustc
+switch $TECH_LIB {
+	tcbn65gplustc {
+                set IO_LIB ${TECH_LIB}
+                set TECH_FILE ${TECH_LIB}.db
+                set IO_FILE ${IO_LIB}.db
+                set MEMORY_FILE ${TECH_LIB}.db }
+}
+
+# User Identity
+set designer [get_unix_variable USER]
+set company  "ECE Dept., UW-Madison"
+
+# Search Path
+# EDIT if you extracted the nldm library somewhere other than this path.
+set search_path "."
+lappend search_path "/home/mthatikonda/tsmc65_work/FE_nldm/TSMCHOME/digital/Front_End/timing_power_noise/NLDM/tcbn65gplus_200a"
+
+# Setup Libraries
+set target_library "$TECH_FILE"
+# IMPORTANT: First library listed in link_library is the main library.
+set link_library      "$target_library *"
+
+set verbose_messages false
+
+# Disable Log Files (same as original)
+set view_command_log_file /dev/null
+if {$dc_shell_mode == "default"} {
+    set command_log_file /dev/null
+} else {
+    set sh_command_log_file /dev/null
+}
+
+# Define Work Library Location
+file mkdir work
+define_design_lib WORK -path {./work}

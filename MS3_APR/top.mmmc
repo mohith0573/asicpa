@@ -1,0 +1,19 @@
+## double check the following relative paths
+
+## TSMC ships ONE timing library file (unlike ASAP7's 5 function-split
+## files), so this list has a single entry.
+create_library_set -name tc -timing {/home/mthatikonda/tsmc65_work/FE_nldm/TSMCHOME/digital/Front_End/timing_power_noise/NLDM/tcbn65gplus_200a/tcbn65gplustc.lib}
+
+create_constraint_mode -name sdc -sdc_files {./top.sdc}
+
+## RC corner: using the TLUplus extraction file (Synopsys-format parasitics,
+## confirmed compatible with Innovus). NOTE: the exact Innovus attribute
+## name for TLUplus-based RC corners can differ slightly by Innovus
+## version between "-qx_tech_file" (Cadence QRC tech file) and a TLUplus-
+## specific flag. Run `man create_rc_corner` in Innovus and confirm this
+## line resolves correctly before trusting extracted parasitics.
+create_rc_corner -name rc_typ -qx_tech_file /home/mthatikonda/tsmc65_work/rc_typical/crn65lp_1p09m+alrdl_6x1z1u_typical.tluplus -T 25
+
+create_delay_corner -name delay_tc -library_set {tc} -rc_corner {rc_typ}
+create_analysis_view -name view_tc -constraint_mode {sdc} -delay_corner {delay_tc}
+set_analysis_view -setup {view_tc} -hold {view_tc}
