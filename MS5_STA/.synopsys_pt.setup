@@ -1,26 +1,29 @@
 #=====================================================================
-#   Adapted from the ECE Dept. UW-Madison .synopsys_pt.setup template
-#   (same file your ASAP7 flow used) — already has a built-in
-#   tcbn65gplustc branch. Switched to it, and pointed search_path at
-#   where you actually extracted the library on this server.
+#   PrimeTime library setup — TSMC 65nm (tcbn65gplustc)
+#
+#   Automatically sourced by pt_shell on startup when this file is
+#   present in the current working directory. Defines which standard
+#   cell library pt_shell is allowed to link the post-route netlist
+#   against, and where to find it on disk.
+#
+#   The library file itself lives in ./lib (copied in alongside this
+#   project, not referenced from any other location) so this project
+#   folder is self-contained and works on any account.
 #=====================================================================
 
-set TECH_LIB tcbn65gplustc
-switch $TECH_LIB {
-	tcbn65gplustc {
-                set IO_LIB ${TECH_LIB}
-                set TECH_FILE ${TECH_LIB}.db
-                set IO_FILE ${IO_LIB}.db
-                set MEMORY_FILE ${TECH_LIB}.db }
-}
+# Target technology library
+set TECH_LIB  tcbn65gplustc
+set TECH_FILE ${TECH_LIB}.db
 
-# User Identity
-set designer [get_unix_variable USER]
-set company  "ECE Dept., UW-Madison"
-
-# Search Path — EDIT if you extracted the library somewhere else
+# Search path: where pt_shell looks for library files referenced by
+# short name.
 set search_path "."
-lappend search_path "/home/mthatikonda/tsmc65_work/FE_nldm/TSMCHOME/digital/Front_End/timing_power_noise/NLDM/tcbn65gplus_200a"
+lappend search_path "./lib"
 
+# Target / link library
 set target_library "$TECH_FILE"
-set link_library      "$target_library *"
+# The first entry in link_library is the default library for new cells;
+# the trailing "*" also allows resolution against anything already loaded.
+set link_library "$target_library *"
+
+set verbose_messages false
