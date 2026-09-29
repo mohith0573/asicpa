@@ -1,10 +1,11 @@
 #=====================================================================
-## Innovus APR — TSMC 65nm (tcbn65gplus_200a, HVH, 1p9m_6X1Z1U_ALRDL)
-## Faithful adaptation of the ASAP7 apr_reference.tcl structure.
-## Every ASAP7-specific number/name is called out explicitly below —
-## some are CONFIRMED (from files you've already inspected), others are
-## PLACEHOLDERS you must confirm before trusting the physical result
-## (see the CONFIRM checklist in README.md).
+## Innovus APR -- TSMC 65nm (tcbn65gplus_200a, HVH, 9M_6X1Z1U_UTRDL)
+## All TSMC PDK files are copied flat into this folder (no subfolders).
+## Remaining unresolved placeholders (search "PLACEHOLDER" / "CONFIRM"):
+##   - well-tap cell name
+##   - tie-hi/tie-lo cell names
+##   - power-grid width/spacing numbers (need DRC deck)
+## See README.md checklist before running.
 #=====================================================================
 
 file delete -force ./timingReports
@@ -19,16 +20,16 @@ set VERSION 21
 set init_design_uniquify 1
 
 ## ---- EDIT: your design ----
-set init_verilog {../MS2_Synthesis/outputs/shift_register.vg}
+set init_verilog {./shiftregister.vg}
 set init_design_netlisttype {Verilog}
 set init_design_settop {1}
-set init_top_cell {shift_register}
+set init_top_cell {shiftregister}
 
-## ---- CONFIRMED paths (from the extraction/matching work already done) ----
-set CELL_LEF "/home/mthatikonda/tsmc65_work/BE_sef/TSMCHOME/digital/Back_End/lef/tcbn65gplus_200a/lef/tcbn65gplus_9lmT2.lef"
-set TECH_LEF "/home/mthatikonda/tsmc65_work/tech_lef/PRTF_EDI_65nm_001_Cad_V24a/PR_tech/Cadence/LefHeader/HVH/PRTF_EDI_N65_9M_6X1Z1U_UTRDL.24a.tlef"
+## ---- Flat paths -- all files copied directly into this folder ----
+set CELL_LEF "./tcbn65gplus_9lmT2.lef"
+set TECH_LEF "./PRTF_EDI_N65_9M_6X1Z1U_UTRDL.24a.tlef"
 
-# tech lef first, cell lef later (same order as ASAP7 flow)
+# tech lef first, cell lef later (same order as the reference flow)
 set init_lef_file "$TECH_LEF $CELL_LEF"
 
 set fp_core_cntl {aspect}
@@ -37,8 +38,8 @@ set extract_shrink_factor {1.0}
 set init_assign_buffer {0}
 set init_pwr_net {VDD}
 set init_gnd_net {VSS}
-## CONFIRM: VDD/VSS are the standard TSMC pin names and very likely correct,
-## but verify with: grep -i "^PIN VDD\|^PIN VSS" $CELL_LEF
+## CONFIRM: VDD/VSS pin names -- very likely correct (standard convention),
+## verify with: grep -i "^PIN VDD\|^PIN VSS" $CELL_LEF
 
 set init_cpf_file {}
 set init_mmmc_file {./top.mmmc}
@@ -56,12 +57,9 @@ if {$VERSION <= 19} {
 
 setMultiCpuUsage -localCpu 8
 
-## CONFIRM routing layer range against the actual TSMC stack (9 metal
-## layers total here, vs ASAP7's 7 — the original used 2-7; for a 9-layer
-## stack you likely want a wider or shifted range, e.g. 2-8, leaving the
-## thick top metal (layer 9) reserved for power/RF routing rather than
-## signal routing). Confirm against the tech LEF's LAYER list:
-##   grep "^LAYER" $TECH_LEF
+## Routing layer range: our stack has 9 total metal layers (vs ASAP7's 7),
+## so the top layer(s) reserved for power move up accordingly -- routing
+## up to M8, reserving M9 (the ultra-thick top layer) for power/RF use.
 if {$VERSION <= 20} {
 	setNanoRouteMode -routeBottomRoutingLayer 2
 	setNanoRouteMode -routeTopRoutingLayer 8
@@ -76,13 +74,11 @@ globalNetConnect VSS -type pgpin -pin VSS -inst *
 #############################################################
 ## Floorplan
 #############################################################
-## ASAP7's ring geometry (FP_RING_OFFSET/WIDTH/SPACE below 1um) reflects
-## 7nm-era minimum widths and is NOT valid at 65nm — reusing those exact
-## numbers would very likely violate 65nm minimum width/spacing rules in
-## the other direction (too thin) or waste area (if actually fine but
-## overly conservative isn't checked). These are placeholder values in a
-## plausible 65nm range; CONFIRM against the DRC deck
-## (MSRF_General_Purpose_Plus/DRC_Command_File) before trusting verify_drc.
+## PLACEHOLDER ring geometry -- plausible 65nm range, NOT derived from
+## TSMC's actual DRC minimum width/spacing rules the way the ASAP7
+## reference numbers were derived from ASAP7's own DRC deck. Confirm
+## against MSRF_General_Purpose_Plus/DRC_Command_File before trusting
+## verify_drc results as final.
 set FP_RING_OFFSET 1.0
 set FP_RING_WIDTH 2.0
 set FP_RING_SPACE 1.0
@@ -90,19 +86,18 @@ set FP_RING_SIZE [expr {$FP_RING_SPACE + 2*$FP_RING_WIDTH + $FP_RING_OFFSET + 1.
 
 ## CONFIRMED from the standard cell LEF's SITE block:
 ##   SITE core  SIZE 0.200 BY 1.800 ;  SYMMETRY Y ; CLASS CORE ;
-## i.e. placement grid pitch (X) = 0.200um, single-row height (Y) = 1.800um.
-## Unlike ASAP7's cellheight formula (0.270*4, because ASAP7's "unit" was a
-## quarter of the real row height), TSMC's SITE already reports the real
-## row height directly — no multiplication needed.
+## This is a 9-track library (vs ASAP7's 7.5-track "asap7sc7p5t"), which
+## is exactly why the row height differs -- a real architectural fact of
+## this specific library, not an arbitrary number. No 4x-scaling
+## multiplication needed here (that was an ASAP7-specific convention);
+## TSMC's SITE already reports the real usable row height directly.
 set cellheight 1.800
 set cellhgrid  0.200
 
-## Floorplan size target — same utilization-style knob as ASAP7's FP_TARGET/
-## FP_MUL, just using the confirmed TSMC grid numbers above. FP_TARGET
-## controls total row count; tune this once you know your synthesized
-## design's actual cell count (check ./reports/synth.area.rpt from MS2 —
-## aim for roughly 65-75% utilization here, same lesson as the ECE755
-## floorplan-too-empty issue).
+## Floorplan size target -- tune FP_TARGET once you know your synthesized
+## design's actual cell count (check ../MS2_Synthesis/reports/synth.area.rpt).
+## Aim for roughly 65-75% utilization -- same lesson as the earlier
+## empty-floorplan issue when this number didn't match the real design size.
 set FP_TARGET 80
 set FP_MUL 5
 
@@ -111,8 +106,8 @@ set fpydim [expr $cellheight * $FP_TARGET]
 
 fpiGetSnapRule
 
-## CONFIRM the site name below — from the LEF this is literally "core"
-## (not a TSMC-branded name like ASAP7's "asap7sc7p5t"):
+## CONFIRMED site name: "core" (from the LEF's own SITE definition --
+## not a TSMC-branded name like ASAP7's "asap7sc7p5t").
 floorPlan -site core -s $fpxdim $fpydim $FP_RING_SIZE $FP_RING_SIZE $FP_RING_SIZE $FP_RING_SIZE -noSnap
 
 if {$VERSION >= 21} {
@@ -121,50 +116,71 @@ if {$VERSION >= 21} {
 	deleteAllFPObjects
 }
 
-## PLACEHOLDER: TSMC well-tap cell name is NOT confirmed. ASAP7's
-## "TAPCELL_ASAP7_75t_R" name obviously doesn't exist in this library.
-## Find the real name with:
-##   grep -i "^CELL.*TAP" $CELL_LEF
-## or check the Verilog models: grep -i "tap" tcbn65gplus.v
-set TAPCELL_NAME "TSMC_TAPCELL_PLACEHOLDER"
-addWellTap -cell $TAPCELL_NAME -cellInterval 12.960 -inRowOffset 1.296
+## CONFIRMED via the real cell list (grep "^MACRO " on the cell LEF):
+## this library has NO standalone tap/well-tie cell -- no TAP-named macro
+## exists at all. Well-tie is most likely handled instead by the
+## N-well-aware filler cells (FILL_NW_HH, FILL_NW_LL, FILL_NW_FA_LL), a
+## common commercial-library approach ASAP7 (academic) didn't use. So: no
+## explicit addWellTap step. Filler insertion using these FILL_NW_* cells
+## should happen after placement, before routing (addFiller). Worth a
+## quick confirmation with Colin/Prof. Zheng that this is correct for
+## this specific library before assuming it's the final word.
 
-if {$VERSION >= 21} {
-	addWellTap -cell $TAPCELL_NAME -cellInterval 12.960 -inRowOffset 1.296
+#############################################################
+## Pin assignment -- fully dynamic, driven by the actual synthesized
+## netlist, per Prof. Zheng's floorplan spec:
+##   - output ports, in order: even index -> LEFT, odd index -> RIGHT
+##     (channel 0 left, channel 1 right, channel 2 left, ... matches
+##      "channel N sits below channel N-2 on the same side")
+##   - every input port (including clk) -> BOTTOM
+## No channel count or port-naming assumption needed -- this reads
+## whatever ports actually exist in the netlist at APR time.
+#############################################################
+set outPins {}
+set inPins  {}
+foreach t [dbGet top.terms] {
+    set dir [dbGet $t.direction]
+    set nm  [dbGet $t.name]
+    if {$dir == "output"} {
+        lappend outPins $nm
+    } else {
+        ;# covers "input" and "inout" -- everything not an output goes
+        ;# to the bottom per the spec (clk included)
+        lappend inPins $nm
+    }
 }
 
-#############################################################
-## Pin assignment — generic (works for any port list, unlike the
-## original's hardcoded DNN port names x0/w04/out0 etc.)
-#############################################################
+set leftPins  {}
+set rightPins {}
+for {set idx 0} {$idx < [llength $outPins]} {incr idx} {
+    set pinName [lindex $outPins $idx]
+    if {[expr {$idx % 2}] == 0} {
+        lappend leftPins $pinName
+    } else {
+        lappend rightPins $pinName
+    }
+}
+
 setPinAssignMode -pinEditInBatch true
-set allPins [dbGet top.terms.name]
-editPin -fixOverlap 1 -unit MICRON -spreadDirection clockwise -spreadType center -spacing 2.016 -pin $allPins
+
+editPin -fixOverlap 1 -unit MICRON -spreadDirection clockwise -side LEFT   -layer 3 -spreadType center -spacing 2.016 -pin $leftPins
+editPin -fixOverlap 1 -unit MICRON -spreadDirection clockwise -side RIGHT -layer 3 -spreadType center -spacing 2.016 -pin $rightPins
+editPin -fixOverlap 1 -unit MICRON -spreadDirection clockwise -side BOTTOM -layer 3 -spreadType center -spacing 2.016 -pin $inPins
+
 editPin -snap TRACK -pin *
 setPinAssignMode -pinEditInBatch false
 legalizePin
 
 #############################################################
-## Power ring (top two metal layers of the stack)
+## Power ring -- top two metal layers of the (9-layer) stack
 #############################################################
-## CONFIRM the actual top-layer names in this 9-metal stack — ASAP7's ring
-## used M6/M7 (its top two of seven). For a 9-layer stack the equivalent
-## "top two" would likely be M8/M9, but the thick top metal (the "U"/"Z"
-## layers in the stack code) may have different names in the tech LEF
-## (e.g. AP, RDL) rather than plain M8/M9. Check with:
-##   grep "^LAYER" $TECH_LEF
-setAddRingMode -ring_target default -extend_over_row 0 -ignore_rows 0 -avoid_short 0 -skip_crossing_trunks none -stacked_via_top_layer Pad -stacked_via_bottom_layer M1 -via_using_exact_crossover_size 1 -orthogonal_only true -skip_via_on_pin {  standardcell } -skip_via_on_wire_shape {  noshape }
+setAddRingMode -ring_target default -extend_over_row 0 -ignore_rows 0 -avoid_short 0 -skip_crossing_trunks none -stacked_via_top_layer AP -stacked_via_bottom_layer M1 -via_using_exact_crossover_size 1 -orthogonal_only true -skip_via_on_pin {  standardcell } -skip_via_on_wire_shape {  noshape }
 addRing -nets {VDD VSS} -type core_rings -follow core -layer {top M9 bottom M9 left M8 right M8} -width $FP_RING_WIDTH -spacing $FP_RING_SPACE -offset $FP_RING_OFFSET -center 0 -threshold 0 -jog_distance 0 -snap_wire_center_to_grid None
 
 #############################################################
-## M2 follow-pin rails (one per standard cell row) — same concept as
-## ASAP7, generic across any 65nm cell library since it just needs the
-## confirmed row height, not any ASAP7-specific pitch number.
+## M2 follow-pin rails (one per standard cell row)
 #############################################################
-## PLACEHOLDER widths (0.1-0.2um range is a plausible starting guess for
-## 65nm M2, but NOT derived from TSMC's actual minimum width/spacing rule
-## the way ASAP7's 0.072 was derived from its DRC deck). Confirm against
-## DRC_Command_File before trusting verify_drc results.
+## PLACEHOLDER widths -- confirm against DRC_Command_File.
 addStripe  -skip_via_on_wire_shape blockring \
     -direction horizontal \
     -set_to_set_distance [expr 2*$cellheight] \
@@ -196,7 +212,7 @@ addStripe  -skip_via_on_wire_shape blockring \
 #############################################################
 ## M3 vertical power stripes
 #############################################################
-## PLACEHOLDER — same caveat as above, refine against DRC deck.
+## PLACEHOLDER -- refine against DRC deck.
 set m3pwrwidth 1.0
 set m3pwrspacing 0.5
 set m3pwrset2setdist 20.0
@@ -204,7 +220,7 @@ set m3pwrset2setdist 20.0
 addStripe  -skip_via_on_wire_shape Noshape \
     -set_to_set_distance $m3pwrset2setdist \
     -skip_via_on_pin Standardcell \
-    -stacked_via_top_layer Pad \
+    -stacked_via_top_layer AP \
     -spacing $m3pwrspacing \
     -xleft_offset 0.5 \
     -layer M3 \
@@ -234,7 +250,7 @@ addStripe  -skip_via_on_wire_shape Noshape \
 
 setSrouteMode -reset
 setSrouteMode -viaConnectToShape { noshape }
-sroute -connect { corePin } -layerChangeRange { M1(1) M9(1) } -blockPinTarget { nearestTarget } -floatingStripeTarget { blockring padring ring stripe ringpin blockpin followpin } -deleteExistingRoutes -allowJogging 0 -crossoverViaLayerRange { M1(1) Pad(10) } -nets { VDD VSS } -allowLayerChange 0 -targetViaLayerRange { M1(1) Pad(10) }
+sroute -connect { corePin } -layerChangeRange { M1(1) M9(1) } -blockPinTarget { nearestTarget } -floatingStripeTarget { blockring padring ring stripe ringpin blockpin followpin } -deleteExistingRoutes -allowJogging 0 -crossoverViaLayerRange { M1(1) AP(10) } -nets { VDD VSS } -allowLayerChange 0 -targetViaLayerRange { M1(1) AP(10) }
 
 editPowerVia -add_vias 1 -orthogonal_only 0
 
@@ -253,11 +269,10 @@ place_opt_design
 #############################################################
 ## Tie cells
 #############################################################
-## PLACEHOLDER: TSMC tie-hi/tie-lo cell names, NOT confirmed. Find real
-## names with:
-##   grep -i "^CELL.*TIE" $CELL_LEF
-set TIE_LO_CELL "TSMC_TIELO_PLACEHOLDER"
-set TIE_HI_CELL "TSMC_TIEHI_PLACEHOLDER"
+## CONFIRMED via the real cell list: plain TIEH / TIEL macros exist
+## (also GTIEH/GTIEL gated variants exist, if a gated tie is ever needed).
+set TIE_LO_CELL "TIEL"
+set TIE_HI_CELL "TIEH"
 setTieHiLoMode -maxFanout 5
 addTieHiLo -prefix TIE -cell [list $TIE_LO_CELL $TIE_HI_CELL]
 
@@ -308,26 +323,26 @@ saveNetlist outputs/${init_top_cell}.apr_pg.v -includePowerGround -excludeLeafCe
 saveDesign outputs/${init_top_cell}.final.enc
 
 #############################################################
-## GDS export — CONFIRMED paths (GDS kit is revision 140a, not 200a;
-## see README for why that's correct, not stale)
+## GDS export -- flat paths, confirmed files
 #############################################################
 setStreamOutMode -reset
 
 streamOut outputs/${init_top_cell}.gds.gz \
-    -mapFile {/home/mthatikonda/tsmc65_work/tech_lef/PRTF_EDI_65nm_001_Cad_V24a/PR_tech/Cadence/GdsOutMap/PRTF_EDI_N65_gdsout_6X1Z1U.24a.map} \
+    -mapFile {./PRTF_EDI_N65_gdsout_6X1Z1U.24a.map} \
     -libName DesignLib \
     -uniquifyCellNames \
     -outputMacros \
     -stripes 1 \
     -mode ALL \
-    -units 4000 \
+    -units 2000 \
     -reportFile ./reports/gds_stream_out_final.rpt \
-    -merge { /home/mthatikonda/tsmc65_work/BE_gds/TSMCHOME/digital/Back_End/gds/tcbn65gplus_140a/tcbn65gplus.gds }
+    -merge { ./tcbn65gplus.gds }
 
-# final notes — same caveats as the ASAP7 reference script, plus:
-# - Several power-grid/ring numbers above are placeholders needing DRC-deck
-#   confirmation before this is trustworthy for real tapeout (see README).
-# - Well-tap and tie-cell names are placeholders — must be confirmed via
-#   grep on the cell LEF before this script will even run past floorplan.
-# - Routing layer range (2-8) and ring layers (M8/M9) assume a plain M1-M9
-#   naming convention; confirm actual LAYER names in the tech LEF.
+# final notes:
+# - Well-tap and tie-cell names are placeholders -- must be confirmed via
+#   grep on the cell LEF before this script will run past floorplan.
+# - Power-grid ring/stripe width/spacing numbers are placeholders in a
+#   plausible 65nm range, not yet confirmed against TSMC's actual DRC deck.
+# - Pin assignment is fully dynamic (reads real ports from the netlist at
+#   run time) -- no channel count or naming convention needs to be known
+#   ahead of time.
