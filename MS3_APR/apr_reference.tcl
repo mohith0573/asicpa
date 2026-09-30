@@ -74,14 +74,13 @@ globalNetConnect VSS -type pgpin -pin VSS -inst *
 #############################################################
 ## Floorplan
 #############################################################
-## PLACEHOLDER ring geometry -- plausible 65nm range, NOT derived from
-## TSMC's actual DRC minimum width/spacing rules the way the ASAP7
-## reference numbers were derived from ASAP7's own DRC deck. Confirm
-## against MSRF_General_Purpose_Plus/DRC_Command_File before trusting
-## verify_drc results as final.
+## CONFIRMED from real M8/M9 layer data in the tech LEF:
+##   M8: min WIDTH 0.400, SPACINGTABLE up to 1.500 (long runs, large widths)
+##   M9: min WIDTH 2, flat SPACING 2 (no table)
+## Ring sits on both M8 and M9, so must satisfy the stricter M9 rule.
 set FP_RING_OFFSET 1.0
-set FP_RING_WIDTH 2.0
-set FP_RING_SPACE 1.0
+set FP_RING_WIDTH 2.5
+set FP_RING_SPACE 2.5
 set FP_RING_SIZE [expr {$FP_RING_SPACE + 2*$FP_RING_WIDTH + $FP_RING_OFFSET + 1.0}]
 
 ## CONFIRMED from the standard cell LEF's SITE block:
@@ -187,7 +186,7 @@ addStripe  -skip_via_on_wire_shape blockring \
     -skip_via_on_pin Standardcell \
     -stacked_via_top_layer  M1 \
     -layer M2 \
-    -width 0.15 \
+    -width 0.2 \
     -nets {VDD} \
     -stacked_via_bottom_layer M1 \
     -start_from bottom \
@@ -201,7 +200,7 @@ addStripe  -skip_via_on_wire_shape blockring \
     -skip_via_on_pin Standardcell \
     -stacked_via_top_layer  M1 \
     -layer M2 \
-    -width 0.15 \
+    -width 0.2 \
     -nets {VSS} \
     -stacked_via_bottom_layer M1 \
     -start_from bottom \
@@ -265,6 +264,22 @@ setOptMode -setupTargetSlack 0.020
 colorizePowerMesh
 
 place_opt_design
+
+#############################################################
+## Filler cells -- fills gaps left between placed standard cells.
+## Includes both plain fillers (FILL1/2/4/8/16/32/64) and the N-well-aware
+## variants (FILL_NW_HH/LL/FA_LL) that likely provide well-tie/well
+## continuity, per the earlier finding that this library has no separate
+## standalone tap cell.
+## HONEST CAVEAT: addFiller only fills leftover gaps -- it does NOT
+## guarantee a fixed maximum distance-to-tap the way addWellTap did for
+## ASAP7 (that used -cellInterval to force regular placement regardless
+## of gaps). If this library's actual well-tie requirement needs a
+## guaranteed max spacing (not just "wherever a gap happens to exist"),
+## this may be insufficient -- worth confirming with Colin/Prof. Zheng,
+## and checking the DRC deck for any "tap cell spacing" rule specifically.
+setFillerMode -core_cell {FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1 FILL1_LL FILL_NW_HH FILL_NW_LL FILL_NW_FA_LL}
+addFiller -cell {FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1 FILL1_LL FILL_NW_HH FILL_NW_LL FILL_NW_FA_LL} -prefix FILLER
 
 #############################################################
 ## Tie cells
