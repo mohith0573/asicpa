@@ -49,10 +49,16 @@ init_design
 #############################################################
 ## Tech node / general settings
 #############################################################
+## Real error encountered: "N65" is not a valid -node enum in this Innovus
+## version (v21.19) -- its -node list is entirely modern FinFET-era names
+## (N7, N5, ...) plus a few foundry-specific advanced codes; there is no
+## legacy-65nm-specific entry at all. "unspecified" is explicitly listed
+## as a valid value, so -process 65 alone still sets the real numeric
+## process node while -node stays generic/non-committal.
 if {$VERSION <= 19} {
 	setDesignMode -process 65
 } else {
-	setDesignMode -process 65 -node N65
+	setDesignMode -process 65 -node unspecified
 }
 
 setMultiCpuUsage -localCpu 8
