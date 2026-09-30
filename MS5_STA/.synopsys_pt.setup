@@ -11,19 +11,14 @@
 #   folder is self-contained and works on any account.
 #=====================================================================
 
-# Target technology library
+
 set TECH_LIB  tcbn65gplustc
 set TECH_FILE ${TECH_LIB}.db
 
-# Search path: where pt_shell looks for library files referenced by
-# short name.
+# Search only the current directory (where the .db file is)
 set search_path "."
-lappend search_path "./lib"
 
-# Target / link library
 set target_library "$TECH_FILE"
-# The first entry in link_library is the default library for new cells;
-# the trailing "*" also allows resolution against anything already loaded.
-set link_library "$target_library *"
+set link_library   "* $target_library"
 
 set verbose_messages false
