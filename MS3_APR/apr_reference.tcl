@@ -287,8 +287,14 @@ place_opt_design
 ## Fixed: real flag is "-core" (not "-core_cell"), and it takes a list
 ## of lists (grouped cell priority sets), confirmed from Innovus's own
 ## usage message when the wrong flag errored out.
-setFillerMode -core {{FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1 FILL1_LL FILL_NW_HH FILL_NW_LL FILL_NW_FA_LL}}
-addFiller -cell {FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1 FILL1_LL FILL_NW_HH FILL_NW_LL FILL_NW_FA_LL} -prefix FILLER
+## Fix attempt: getting 0 fillers inserted with the combined list suggests
+## mixing FILL_NW_* (which may need a site type this simple core-only
+## floorplan doesn't provide rows for, same class of issue as the earlier
+## LVLLHCD/bcoreExt dont_use warning) into one group silently invalidated
+## the whole pass. Try plain fillers alone first -- confirm insertion
+## actually happens -- before layering NW variants back in.
+setFillerMode -core {{FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1 FILL1_LL}}
+addFiller -prefix FILLER
 
 #############################################################
 ## Tie cells
