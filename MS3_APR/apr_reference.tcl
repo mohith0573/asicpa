@@ -284,7 +284,10 @@ place_opt_design
 ## guaranteed max spacing (not just "wherever a gap happens to exist"),
 ## this may be insufficient -- worth confirming with Colin/Prof. Zheng,
 ## and checking the DRC deck for any "tap cell spacing" rule specifically.
-setFillerMode -core_cell {FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1 FILL1_LL FILL_NW_HH FILL_NW_LL FILL_NW_FA_LL}
+## Fixed: real flag is "-core" (not "-core_cell"), and it takes a list
+## of lists (grouped cell priority sets), confirmed from Innovus's own
+## usage message when the wrong flag errored out.
+setFillerMode -core {{FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1 FILL1_LL FILL_NW_HH FILL_NW_LL FILL_NW_FA_LL}}
 addFiller -cell {FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1 FILL1_LL FILL_NW_HH FILL_NW_LL FILL_NW_FA_LL} -prefix FILLER
 
 #############################################################
