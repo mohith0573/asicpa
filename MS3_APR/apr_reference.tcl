@@ -117,7 +117,15 @@ floorPlan -site core -s $fpxdim $fpydim $FP_RING_SIZE $FP_RING_SIZE $FP_RING_SIZ
 
 if {$VERSION >= 21} {
 	add_tracks -snap_m1_track_to_cell_pins
-	add_tracks -mode replace -offsets {M5 vertical 0}
+	## REMOVED: "add_tracks -mode replace -offsets {M5 vertical 0}" --
+	## carried over from ASAP7's own track-grid workaround, tuned for
+	## ASAP7's geometry. Confirmed root cause of zero fillers: despite
+	## only naming M5, it regenerated ALL tracks and corrupted M1's
+	## pitch (log showed "Generated pitch 3.6... different from 0.2
+	## defined in technology file"). Real cell pins still placed fine
+	## (separately re-snapped by the line above), but fillers -- which
+	## rely purely on row/track grid validity, no pins to snap -- failed
+	## outright as a direct result.
 	deleteAllFPObjects
 }
 
