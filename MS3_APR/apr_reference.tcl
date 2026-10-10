@@ -280,31 +280,6 @@ colorizePowerMesh
 place_opt_design
 
 #############################################################
-## Filler cells -- fills gaps left between placed standard cells.
-## Includes both plain fillers (FILL1/2/4/8/16/32/64) and the N-well-aware
-## variants (FILL_NW_HH/LL/FA_LL) that likely provide well-tie/well
-## continuity, per the earlier finding that this library has no separate
-## standalone tap cell.
-## HONEST CAVEAT: addFiller only fills leftover gaps -- it does NOT
-## guarantee a fixed maximum distance-to-tap the way addWellTap did for
-## ASAP7 (that used -cellInterval to force regular placement regardless
-## of gaps). If this library's actual well-tie requirement needs a
-## guaranteed max spacing (not just "wherever a gap happens to exist"),
-## this may be insufficient -- worth confirming with Colin/Prof. Zheng,
-## and checking the DRC deck for any "tap cell spacing" rule specifically.
-## Fixed: real flag is "-core" (not "-core_cell"), and it takes a list
-## of lists (grouped cell priority sets), confirmed from Innovus's own
-## usage message when the wrong flag errored out.
-## Fix attempt: getting 0 fillers inserted with the combined list suggests
-## mixing FILL_NW_* (which may need a site type this simple core-only
-## floorplan doesn't provide rows for, same class of issue as the earlier
-## LVLLHCD/bcoreExt dont_use warning) into one group silently invalidated
-## the whole pass. Try plain fillers alone first -- confirm insertion
-## actually happens -- before layering NW variants back in.
-setFillerMode -core {{FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1 FILL1_LL}}
-addFiller -prefix FILLER
-
-#############################################################
 ## Tie cells
 #############################################################
 ## CONFIRMED via the real cell list: plain TIEH / TIEL macros exist
@@ -339,6 +314,31 @@ optDesign -postRoute -hold
 
 report_noise -threshold 0.2
 report_noise -bumpy_waveform
+
+#############################################################
+## Filler cells -- fills gaps left between placed standard cells.
+## Includes both plain fillers (FILL1/2/4/8/16/32/64) and the N-well-aware
+## variants (FILL_NW_HH/LL/FA_LL) that likely provide well-tie/well
+## continuity, per the earlier finding that this library has no separate
+## standalone tap cell.
+## HONEST CAVEAT: addFiller only fills leftover gaps -- it does NOT
+## guarantee a fixed maximum distance-to-tap the way addWellTap did for
+## ASAP7 (that used -cellInterval to force regular placement regardless
+## of gaps). If this library's actual well-tie requirement needs a
+## guaranteed max spacing (not just "wherever a gap happens to exist"),
+## this may be insufficient -- worth confirming with Colin/Prof. Zheng,
+## and checking the DRC deck for any "tap cell spacing" rule specifically.
+## Fixed: real flag is "-core" (not "-core_cell"), and it takes a list
+## of lists (grouped cell priority sets), confirmed from Innovus's own
+## usage message when the wrong flag errored out.
+## Fix attempt: getting 0 fillers inserted with the combined list suggests
+## mixing FILL_NW_* (which may need a site type this simple core-only
+## floorplan doesn't provide rows for, same class of issue as the earlier
+## LVLLHCD/bcoreExt dont_use warning) into one group silently invalidated
+## the whole pass. Try plain fillers alone first -- confirm insertion
+## actually happens -- before layering NW variants back in.
+setFillerMode -core {{FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1 FILL1_LL}}
+addFiller -prefix FILLER
 
 #############################################################
 ## Reports
